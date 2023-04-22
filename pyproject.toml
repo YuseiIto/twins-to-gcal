@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "twins-to-gcal"
+version = "0.1.0"
+description = "TWINS to Google Calendar utility script."
+authors = ["Yusei Ito <me@yuseiito.com>"]
+license = "Apache Licence 2.0"
+readme = "README.md"
+packages = [{include = "twins_to_gcal"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+toml = "^0.10.2"
+icalendar = "^5.0.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
