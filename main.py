@@ -27,19 +27,15 @@ cal.add("calscale", "GREGORIAN")
 cal.add("method", "REQUEST")
 
 for c in subscription.courses_iter():
-    print(c)
     print(f"Processing {c.name} ({c.code}).")
     for m in c.modules:
-        print(f"\tFound {m}.")
         for d, periods in c.classDays:
-            print(f"\t\tFound {d}.")
             firstDay = calendar.computeFirstDay(m, d)
             lastDay = calendar.computeLastDay(m, d)
             excludedDays = calendar.computeExcludes(m, d)
             includedDays = calendar.getOverrides(m, d)
 
             for unit in periods:
-                print(f"\t\t\tFound {unit}.")
                 event = Event()
                 event.add("summary", c.name)
                 start, end = unit.toTimeDelta()
