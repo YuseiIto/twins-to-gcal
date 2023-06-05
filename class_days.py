@@ -1,55 +1,105 @@
-import toml
-from datetime import datetime,timedelta
+from weekday import WeekdayJa
+from dataclasses import dataclass
+from typing import List
+from datetime import timedelta
 
-JP_WEEKDAY=['月','火','水','木','金','土','日']
-EN_WEEKDAY=['mon','tue','wed','thu','fri','sat','sun']
 
-def parseCalendar(file):
-    print(f"Reading {file}...")
-    with open(file, "r") as f:
-        toml_string = f.read()
-    parsed_toml = toml.loads(toml_string)
-    return parsed_toml
+@dataclass()
+class ClassUnit:
+    """A single unit of a class.
+    The classes on consecutive periods are grouped into a single ClassUnit."""
 
-def parseDatetime(src:str):
-    return datetime.strptime(src, "%Y/%m/%d")
+    start: int
+    end: int
 
-def getOverrides(calendar:dict,module: str,weekdaySlug: str):
-    exceptions = []
-    try:
-        exceptions = calendar['modules'][module]['overrides'][weekdaySlug]
-    except KeyError:
-        pass
-    
-    exceptions = [parseDatetime(d) for d in exceptions]
-    return exceptions
+    def __periodToTime(self, period: int) -> timedelta:
+        match int(period):
+            case 1:
+                return timedelta(hours=8, minutes=40)
+            case 2:
+                return timedelta(hours=10, minutes=10)
+            case 3:
+                return timedelta(hours=12, minutes=15)
+            case 4:
+                return timedelta(hours=13, minutes=45)
+            case 5:
+                return timedelta(hours=15, minutes=15)
+            case 6:
+                return timedelta(hours=16, minutes=45)
+            case 7:
+                return timedelta(hours=18, minutes=15)
+            case 8:
+                return timedelta(hours=20, minutes=45)
+            case _:
+                raise ValueError(f"Invalid period: {period}")
 
-def readExcludes(calendar:dict,module: str):
-    excludes = []
-    try:
-        excludes = calendar['modules'][module]['excludes']
-    except KeyError:
-        pass
-    return excludes
+    def isJustBefore(self, i: int):
+        return self.end + 1 == i
 
-def computeExcludes(calendar:dict,module: str,weekdayEn: str):
-    moduleObj = calendar['modules'][module]
-    excludedDays = [parseDatetime(d) for d in  readExcludes(calendar,module)]
-    for weekdaySlug in EN_WEEKDAY:
-        if weekdaySlug == weekdayEn:
-            continue
-        excludedDays.extend(getOverrides(calendar,module,weekdaySlug))
-    return excludedDays 
+    def toTimeDelta(self) -> (timedelta, timedelta):
+        length = self.end - self.start + 1
+        start = self.__periodToTime(self.start)
+        end = (
+            start
+            + timedelta(minutes=75) * length
+            + timedelta(minutes=15) * (length - 1)
+        )
 
-def computeFirstDay(calendar:dict,module: str,weekdayJa: str): 
-    moduleObj = calendar['modules'][module]
-    base= moduleObj['base'].split('-')
-    start = parseDatetime(base[0])
-    targetWeekday = JP_WEEKDAY.index(weekdayJa)
-    return start + timedelta(days=(targetWeekday-start.weekday())%7)
+        return (start, end)
 
-def computeLastDay(calendar:dict,module:str,weekdayJa:str):
-    moduleObj = calendar['modules'][module]
-    base= moduleObj['base'].split('-')
-    end = parseDatetime(base[1])
-    return end
+
+WeekdayDict = dict[WeekdayJa, List[ClassUnit]]
+
+
+class ClassDays:
+    __week: WeekdayDict
+    __raw: str
+
+    def __init__(self, raw: str):
+        """Parse a string like "月1,2" into a list of ClassDay object.
+        Args:
+            raw(str): A string like "月1,2".
+        """
+        self.__raw = raw.strip()
+        self.__week = {WeekdayJa(weekday): [] for weekday in WeekdayJa}
+
+        if not self.__raw:
+            return
+
+        try:
+            currentDay: WeekdayJa = WeekdayJa(self.__raw[0])
+        except ValueError:
+            # Ignore "集中" items and similar.
+            return
+
+        currentSeq = None
+        for c in self.__raw[1:]:
+            if c.isdigit() and currentDay is not None:
+                if currentSeq is None:
+                    currentSeq = ClassUnit(int(c), int(c))
+                elif currentSeq.isJustBefore(int(c)):
+                    currentSeq.end = int(c)
+                else:
+                    # End of sequence
+                    self.__week[currentDay].append(currentSeq)
+                    currentSeq = ClassUnit(int(c), int(c))
+            elif c in ",・":
+                pass
+            else:
+                if currentSeq is not None and currentDay is not None:
+                    self.__week[currentDay].append(currentSeq)
+                currentSeq = None
+
+                try:
+                    currentDay = WeekdayJa(c)
+                except ValueError:
+                    currentDay = None
+
+        if currentSeq is not None and currentDay is not None:
+            self.__week[currentDay].append(currentSeq)
+
+    def __iter__(self):
+        return self.__week.items().__iter__()
+
+    def __repr__(self):
+        return f"From: {self.__raw}. Detecetd Len: {str([(k.value,len(l)) for k,l in self.__week.items()])}"
