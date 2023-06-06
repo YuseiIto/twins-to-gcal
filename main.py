@@ -1,7 +1,7 @@
 # coding: utf-8
 import sys
 from catalog import Catalog
-from icalendar import Calendar as iCalendar, Event
+from icalendar import Calendar as iCalendar, Event  # type: ignore
 from univ_calendar import Calendar
 from subscription import Subscription
 

@@ -1,6 +1,6 @@
 from weekday import WeekdayJa
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple, Optional
 from datetime import timedelta
 
 
@@ -36,7 +36,7 @@ class ClassUnit:
     def isJustBefore(self, i: int):
         return self.end + 1 == i
 
-    def toTimeDelta(self) -> (timedelta, timedelta):
+    def toTimeDelta(self) -> Tuple[timedelta, timedelta]:
         length = self.end - self.start + 1
         start = self.__periodToTime(self.start)
         end = (
@@ -67,7 +67,7 @@ class ClassDays:
             return
 
         try:
-            currentDay: WeekdayJa = WeekdayJa(self.__raw[0])
+            currentDay: Optional[WeekdayJa] = WeekdayJa(self.__raw[0])
         except ValueError:
             # Ignore "集中" items and similar.
             return

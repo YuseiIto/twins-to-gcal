@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TypedDict, List
 from class_days import ClassDays
-from module import expandModules
+from module import expandModules,Module
 from course_code import CourseCode
 
 RawCourse = TypedDict(
@@ -19,11 +19,11 @@ RawCourse = TypedDict(
 
 @dataclass(init=False)
 class Course:
-    code: str
+    code: CourseCode
     name: str
     style: str
-    modules: List[str]  # FIXME: Use better type
-    classDays: List[List[int]]  # FIXME: Use Better Type
+    modules: List[Module]
+    classDays: ClassDays
     room: str
 
     def __init__(self, record: RawCourse):

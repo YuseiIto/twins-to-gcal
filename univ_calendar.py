@@ -1,5 +1,5 @@
 import toml
-from typing import TypedDict
+from typing import TypedDict, Any
 from weekday import WeekdayEn, WeekdayJa
 from datetime import datetime, timedelta
 from module import Module
@@ -12,10 +12,43 @@ RawModuleSchedule = TypedDict(
         "overrides": dict[WeekdayEn, list[str]],  # yyyy/mm/dd
     },
 )
+
 RawCalendar = TypedDict(
     "RawCalendar",
     {"modules": dict[str, RawModuleSchedule]},
 )
+
+
+def sanitizeModule(module: dict[str, Any]):
+    sanitized = {}
+    if module["base"] is None:
+        raise ValueError("base is not defined")
+    sanitized["base"] = module["base"]
+
+    if module["excludes"] is None:
+        sanitized["excludes"] = []
+    else:
+        sanitized["excludes"] = module["excludes"]
+
+    if module["overrides"] is None:
+        sanitized["overrides"] = {}
+    else:
+        sanitized["overrides"] = {
+            WeekdayEn(k): v for k, v in module["overrides"].items()
+        }
+
+    return sanitized
+
+
+def sanitizeCalendar(calendar: dict[str, Any]):
+    if calendar["modules"] is None:
+        raise ValueError("modules is not defined")
+
+    modules = {
+        name: sanitizeModule(module) for name, module in calendar["modules"].items()
+    }
+
+    return {"modules": modules}
 
 
 class Calendar:
@@ -30,7 +63,7 @@ class Calendar:
         print(f"Reading {file}...")
         with open(file, "r") as f:
             toml_string = f.read()
-        self.__data = toml.loads(toml_string)
+        self.__data = sanitizeCalendar(toml.loads(toml_string))
 
     def __parseDatetime(self, src: str):
         return datetime.strptime(src, "%Y/%m/%d")

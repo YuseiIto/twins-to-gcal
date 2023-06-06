@@ -1,5 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass
+from typing import List
 
 
 class Semester(Enum):
@@ -23,7 +24,7 @@ class Module:
 
 
 def expandModules(modulesStr: str):
-    modules = []
+    modules: List[Module] = []
     if not modulesStr:
         return modules
 
